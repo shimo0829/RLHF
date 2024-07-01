@@ -1,0 +1,205 @@
+<!DOCTYPE html>  <!--HTML5的文件類型宣告-->
+<html lang="zh-Hant">  <!--指定語言為繁體中文-->
+
+<!--包含頁面名稱、以及相關的樣式設定-->
+<head>  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!--頁面的視窗大小設定以及預設縮放設定-->
+    <title>RLHF 評分介面</title>  <!--頁面標題-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">  <!--引用style.css中的頁面樣式設定-->
+</head>
+
+<!--用來呈現網頁的動態內容-->
+<body>  
+    <div class="container">  <!--建構額外的容器，其中包含問題表單以及顯示結果的部分-->
+
+        <!--問題表單的區塊-->
+        <div class="form-group">
+            <label for="question">問題：</label>
+            <select id="question"></select>  <!--用於顯示問題列表的下拉式選單-->
+        </div>
+        <div id="answers_display" class="answers-display"></div>  <!--顯示問題的答案-->
+
+        <!--評分者輸入欄位-->
+        <div class="form-group">
+            <input id="rater_input" type="text" placeholder="評分者">  <!--評分者的輸入欄位-->
+        </div>
+
+        <!--顯示結果的區塊-->
+        <div class="form-group">
+            <button id="submit_feedback">提交評分</button>  <!--提交評分的按鈕-->
+            <!--<button id="clear_feedback">清除回饋紀錄</button>--> 
+        </div>
+
+        <!--顯示結果的內容，包含問題、答案以及最佳答案-->
+        <div id="feedback_results" class="feedback-results">
+            <p id="question_output"></p>
+            <div id="answers_output"></div>
+            <p id="best_answer_output"></p>
+        </div>
+    </div>
+
+    <!--動態生成頁面元素(使用JavaScript語法撰寫)-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {  //建立事件管理器，網頁加載完後執行
+            const questionSelect = document.getElementById('question');
+            const answersDisplay = document.getElementById('answers_display');
+            const questionOutput = document.getElementById('question_output');
+            const answersOutput = document.getElementById('answers_output');
+            const bestAnswerOutput = document.getElementById('best_answer_output');
+            const feedbackResults = document.getElementById('feedback_results');
+            const raterInput = document.getElementById('rater_input');
+
+            let questionsAndAnswers = [];  //用於儲存獲取的問題與答案
+
+            fetch('/questions.json')  //使用fetch從後端的Json檔中獲取問題與答案數據
+                .then(response => response.json())  //將回應轉換為Json格式的JavaScript對象
+                .then(data => {  //將獲取的答案賦值到questionsAndAnswers陣列
+                    questionsAndAnswers = data;
+                    initializeQuestions();
+                })
+                .catch(error => console.error('Error loading questions.json:', error));  //錯誤時會顯示的訊息
+
+            //用於初始化問題的下拉式選單
+            function initializeQuestions() {
+                questionSelect.innerHTML = '';  //清空下拉式選單
+                questionsAndAnswers.forEach((item, index) => {  //使用foreach遍歷每一個問題與答案
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = item.question;  //每一個問題對應選單中的一個選項
+                    questionSelect.appendChild(option);  //將選項添加至下拉式選單中
+                });
+
+                questionSelect.addEventListener('change', function() {  //建立事件管理器，當問題被選擇時觸發
+                    const selectedQuestionIndex = parseInt(this.value);  //選擇問題的索引，並轉換為整數
+                    const selectedAnswers = questionsAndAnswers[selectedQuestionIndex].answers;  //找到對應的答案
+                    createFeedbackSliders(selectedAnswers);  //根據選擇的答案建立評分條
+
+                    questionOutput.textContent = '';
+                    answersOutput.innerHTML = '';
+                    bestAnswerOutput.textContent = '';
+                    feedbackResults.style.display = 'none'; 
+                });
+
+                questionSelect.dispatchEvent(new Event('change'));
+            }
+
+            function createFeedbackSliders(answers) {  //根據答案生成評分條
+                answersDisplay.innerHTML = '';  //清空answersDisplay的內容，等待生成評分條  
+
+                answers.forEach((answer, idx) => {  //利用foreach遍歷每一個答案
+                    const answerDiv = document.createElement('div');
+                    answerDiv.classList.add('answer-container');
+
+                    const label = document.createElement('label');
+                    label.innerText = `答案 ${idx + 1}： ${answer.text}`;  //顯示答案的序號和內容
+
+                    const inputDiv = document.createElement('div');
+                    inputDiv.classList.add('answer-input');
+
+                    //評分條設定
+                    const input = document.createElement('input');
+                    input.type = 'range';
+                    input.min = '0.0';  //最小值
+                    input.max = '1.0';  //最大值
+                    input.step = '0.1';  //每次增加或減少的值
+                    input.value = '0.0';  //初始值
+                    input.id = `score_${idx}`;  //設定評分條的id，用於辨識不同的評分條
+                    input.style.width = '90%';  //評分條寬度設定
+
+                    const output = document.createElement('output');  //實時顯示評分的數值
+                    output.innerText = '0.0';  //設定初始值為0
+
+                    input.addEventListener('input', function() {  //建立事件管理器
+                        output.innerText = this.value;  //當使用者進行評分調整時，將output設為當前值
+                    }); 
+
+                    inputDiv.appendChild(input);
+                    inputDiv.appendChild(output);
+
+                    answerDiv.appendChild(label);
+                    answerDiv.appendChild(inputDiv);
+
+                    answersDisplay.appendChild(answerDiv);
+                });
+            }
+
+            //建立事件管理器，當提交按鈕被按下時觸發
+            document.getElementById('submit_feedback').addEventListener('click', function() {
+                const questionIndex = parseInt(questionSelect.value);  //獲取問題的索引
+                const question = questionSelect.options[questionIndex].text;  //根據索引獲取問題的文本內容
+                const answers = questionsAndAnswers[questionIndex].answers.map(ans => ans.text);  //遍歷所選問題的所有答案
+                const scores = [];  //建立空陣列，用於儲存對所有答案的評分
+
+                //取得所有答案的評分後轉換為浮點數儲存在scores中
+                for (let i = 0; i < answers.length; i++) {
+                    scores.push(parseFloat(document.getElementById(`score_${i}`).value));
+                }
+
+                const feedbackData = answers.map((ans, idx) => ({
+                    "text": ans,
+                    "score": scores[idx],
+                    "rater": raterInput.value  //使用評分者輸入欄位的值
+                }));
+
+                feedbackData.sort((a, b) => b.score - a.score);
+
+                const result = {
+                    "question": question,
+                    "answers": feedbackData,
+                    "best_answer": feedbackData[0].text
+                };
+
+                questionOutput.textContent = `問題: ${result.question}`;
+                const answersOutputHTML = result.answers.map((ans, idx) => 
+                    `<div class="answer-item">
+                        <p>答案 ${idx + 1}：${ans.text}</p>
+                        <p class="answer-score">分數：${ans.score}</p>
+                        <p class="answer-rater">評分者：${ans.rater}</p>
+                    </div>`).join('');
+                answersOutput.innerHTML = `<p>答案：</p>${answersOutputHTML}`;
+                bestAnswerOutput.textContent = `最佳答案: ${result.best_answer}`;
+                feedbackResults.style.display = 'block';
+
+                fetch('/save-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(result)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => console.log(data))
+                .catch(error => console.error('Error saving feedback:', error));
+            });
+
+            document.getElementById('clear_feedback').addEventListener('click', function() {
+                fetch('/clear-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('回饋紀錄清除成功!');
+                        location.reload();  
+                    } else {
+                        alert('Error clearing feedback!');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error clearing feedback!');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+/* 頁面的樣式設定 */
+body {
+    background-color: #282c34;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px; 
+}
+
+.form-group button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+    border-radius: 5px; 
+}
+
+.form-group button:hover {
+    background-color: #45a049;
+}
+
+.feedback-results {
+    display: none;
+    margin-top: 20px;
+}
+
+.feedback-results p {
+    margin-bottom: 10px;
+}
+
+.answer-container {
+    background-color: #333;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.answer-container label {
+    margin-bottom: 10px;
+    display: block;
+}
+
+.answer-container .answer-input {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.answer-container .rater-input {
+    margin-top: 10px;
+    border-radius: 5px; 
+    padding: 5px; 
+}
+
+.answer-input input[type="range"] {
+    width: 70%;
+    margin-left: 10px;
+    border-radius: 5px; 
+}
+
+.answer-input output {
+    margin-left: 10px;
+}
+
+#rater_input {
+    width: 150px;
+    height: 30px; 
+    font-size: 15px;
+    box-sizing: border-box;
+    border-radius: 5px; 
+}
