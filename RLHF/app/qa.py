@@ -1,53 +1,29 @@
-import accelerate
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import json
-import os
+import os 
 import re
+import json
+from openai import OpenAI
 
-torch.random.manual_seed(0)  #將隨機數生成器的種子設為0
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
 
-model = AutoModelForCausalLM.from_pretrained(
-    "microsoft/Phi-3-mini-4k-instruct",
-    device_map="cuda",
-    torch_dtype="auto",
-    trust_remote_code=True,
+completion = client.chat.completions.create(
+  model="YC-Chen/Breeze-7B-Instruct-v1_0-GGUF",
+  messages=[
+    {"role": "system", "content": "Answer my question."},
+    {"role": "user", "content": "解釋量子計算的基本原理。"}
+  ],
+  temperature=0.7,
 )
 
-tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-4k-instruct")
+response = completion.choices[0].message.content
 
-messages = [
-    {"role": "system", "content": "You are a helpful assistant. Please provide safe, ethical and accurate information to the user"},
-    {"role": "user", "content": "Who was the first human on earth?"},
-    {"role": "assistant", "content": "Adam"},
-    {"role": "user", "content": "解釋量子計算的基本原理。"},
-]
+cleaned_answer = re.sub(r'\s+', ' ', response).strip()
 
-pipe = pipeline(
-    "text-generation",
-    model=model,
-    tokenizer=tokenizer,
-)
-
-generation_args = {
-    "max_new_tokens": 100,
-    "return_full_text": False,
-    "temperature": 0.5,
-    "do_sample": False,
-}
-
-output = pipe(messages, **generation_args)
-generated_answer = output[0]['generated_text']
-print(generated_answer)
-
-cleaned_answer = re.sub(r'\s+', ' ', generated_answer).strip()
-
-question = messages[-1]['content']
+question = "解釋量子計算的基本原理。"
 new_answer = {
     "text": cleaned_answer
 }
 
-json_path = os.path.join('app', 'data', 'questions.json')
+json_path = os.path.join('RLHF', 'app', 'data', 'questions.json')
 
 os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
@@ -74,3 +50,6 @@ with open(json_path, 'w', encoding='utf-8') as f:
     json.dump(questions, f, ensure_ascii=False, indent=4)
 
 print("Saved successfully.")
+
+
+
