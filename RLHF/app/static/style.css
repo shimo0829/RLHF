@@ -95,3 +95,7 @@ body {
     box-sizing: border-box;
     border-radius: 5px; 
 }
+
+footer {
+    text-align: center;
+}
