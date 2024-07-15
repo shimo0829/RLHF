@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QA SYSTEM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>QA SYSTEM</h1>
+        <input type="text" id="question" placeholder="輸入問題">
+        <button onclick="askQuestion()">送出</button>
+        <div id="answer" class="answer">
+            <div id="answer-text" class="answer-text"></div> 
+        </div>
+        <div id="loading" style="display: none;"> 
+            <div class="loader"></div>
+            <div class="loading-text">正在生成答案...</div>
+        </div>
+    </div>
+
+    <script>
+        function askQuestion() {
+            const question = document.getElementById('question').value;
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('answer-text').innerText = ''; 
+
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none'; 
+                document.getElementById('answer-text').innerText = data.answer; 
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none'; 
+            });
+
+            const button = document.querySelector('button');
+            button.style.backgroundColor = '#2196F3'; 
+            setTimeout(() => {
+                button.style.backgroundColor = ''; 
+            }, 300);
+        }
+    </script>
+</body>
+</html>
